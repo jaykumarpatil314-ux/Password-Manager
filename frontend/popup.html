@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Password Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen">
+    <div class="header">
+      <h1>🔐 Password Manager</h1>
+      <p class="subtitle">Zero-knowledge, client-side encryption</p>
+    </div>
+
+    <div class="form-container">
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Login</button>
+        <button class="tab" data-tab="register">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form active">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Master Password</label>
+          <input type="password" id="login-password" placeholder="Enter master password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+        <div id="login-error" class="error-message"></div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form">
+        <div class="form-group">
+          <label for="register-username">Username</label>
+          <input type="text" id="register-username" placeholder="Choose username" required>
+        </div>
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" placeholder="Enter email" required>
+        </div>
+        <div class="form-group">
+          <label for="register-password">Master Password</label>
+          <input type="password" id="register-password" placeholder="Create strong master password" required>
+          <div class="password-strength">
+            <div id="strength-bar" class="strength-bar"></div>
+            <span id="strength-text" class="strength-text"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="register-confirm-password">Confirm Password</label>
+          <input type="password" id="register-confirm-password" placeholder="Confirm master password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Register</button>
+        <div id="register-error" class="error-message"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Screen -->
+  <div id="main-screen" class="screen" style="display: none;">
+    <div class="header">
+      <h1>🔐 My Passwords</h1>
+      <button id="logout-btn" class="btn btn-secondary btn-sm">Logout</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search passwords..." class="search-input">
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button id="add-password-btn" class="btn btn-primary">+ Add Password</button>
+      <button id="generate-password-btn" class="btn btn-secondary">Generate Password</button>
+    </div>
+
+    <!-- Password List -->
+    <div id="password-list" class="password-list">
+      <!-- Passwords will be dynamically loaded here -->
+    </div>
+
+    <div id="no-passwords" class="empty-state" style="display: none;">
+      <p>No passwords saved yet</p>
+      <p class="subtitle">Click "Add Password" to get started</p>
+    </div>
+  </div>
+
+  <!-- Add/Edit Password Modal -->
+  <div id="password-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Password</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="password-form">
+        <div class="form-group">
+          <label for="modal-website-url">Website URL</label>
+          <input type="url" id="modal-website-url" placeholder="https://example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="modal-website-name">Website Name</label>
+          <input type="text" id="modal-website-name" placeholder="Example Site">
+        </div>
+        <div class="form-group">
+          <label for="modal-username">Username/Email</label>
+          <input type="text" id="modal-username" placeholder="user@example.com">
+        </div>
+        <div class="form-group">
+          <label for="modal-password">Password</label>
+          <div class="password-input-group">
+            <input type="password" id="modal-password" placeholder="Enter password" required>
+            <button type="button" class="btn btn-icon" id="toggle-password-visibility">👁️</button>
+            <button type="button" class="btn btn-icon" id="generate-modal-password">🎲</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="modal-notes">Notes (optional)</label>
+          <textarea id="modal-notes" placeholder="Additional notes" rows="3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary" id="save-password-btn">Save</button>
+          <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+        </div>
+        <div id="modal-error" class="error-message"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Password Generator Modal -->
+  <div id="generator-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Password Generator</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="generator-content">
+        <div class="generated-password-display">
+          <input type="text" id="generated-password-text" readonly>
+          <button class="btn btn-icon" id="copy-generated-password">📋</button>
+        </div>
+        <div class="form-group">
+          <label for="password-length">Length: <span id="length-value">16</span></label>
+          <input type="range" id="password-length" min="8" max="32" value="16">
+        </div>
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="include-lowercase" checked>
+            Lowercase (a-z)
+          </label>
+          <label>
+            <input type="checkbox" id="include-uppercase" checked>
+            Uppercase (A-Z)
+          </label>
+          <label>
+            <input type="checkbox" id="include-numbers" checked>
+            Numbers (0-9)
+          </label>
+          <label>
+            <input type="checkbox" id="include-symbols" checked>
+            Symbols (!@#$...)
+          </label>
+        </div>
+        <button class="btn btn-primary" id="regenerate-password">Generate New Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p>Loading...</p>
+  </div>
+
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
