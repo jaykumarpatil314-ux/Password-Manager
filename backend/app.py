@@ -437,4 +437,4 @@ def internal_error(error):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=app.config['DEBUG'])
->>>>>>> 7bc2a62 (Backend for the password manager)
+
