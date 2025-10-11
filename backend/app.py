@@ -21,12 +21,57 @@ from crypto_utils import sanitize_input, validate_password_strength
 app = Flask(__name__)
 config_name = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(get_config(config_name))
+# ============================================================================
+# CRITICAL: Initialize CORS BEFORE defining any routes
+# ============================================================================
 
-# Initialize CORS
-CORS(app, resources={r"/*": {"origins": app.config['CORS_ORIGINS']}})
+CORS(app, 
+     resources={r"/*": {
+         "origins": "*",  # Allow all origins for development
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+         "supports_credentials": True,
+         "expose_headers": ["Content-Type", "Authorization"]
+     }})
 
-# Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins=app.config['CORS_ORIGINS'], async_mode='eventlet')
+# ============================================================================
+# Add after_request handler - This ensures CORS headers on ALL responses
+# ============================================================================
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response
+
+# ============================================================================
+# Handle preflight OPTIONS requests explicitly
+# ============================================================================
+
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 204
+
+# ============================================================================
+# Initialize SocketIO with CORS support
+# ============================================================================
+
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*",  # For development
+    async_mode='eventlet',
+    logger=True,
+    engineio_logger=True
+)
 
 # Initialize database
 db_manager = DatabaseManager(app.config['SQLALCHEMY_DATABASE_URI'])
@@ -437,4 +482,3 @@ def internal_error(error):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=app.config['DEBUG'])
->>>>>>> 7bc2a62 (Backend for the password manager)

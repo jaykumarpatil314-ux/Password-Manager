@@ -3,179 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Secure Password Manager</title>
+  <title>SecureVault</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <!-- Login Screen -->
-  <div id="login-screen" class="screen">
+  <!-- Login/Register Screen -->
+  <div id="auth-screen" class="screen">
     <div class="header">
-      <h1>🔐 Password Manager</h1>
-      <p class="subtitle">Zero-knowledge, client-side encryption</p>
+      <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <h1>SecureVault</h1>
+      <p class="tagline">Zero-Knowledge Password Manager</p>
     </div>
 
-    <div class="form-container">
-      <div class="tabs">
-        <button class="tab active" data-tab="login">Login</button>
-        <button class="tab" data-tab="register">Register</button>
+    <div class="tabs">
+      <button class="tab active" data-tab="login">Login</button>
+      <button class="tab" data-tab="register">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="form active">
+      <div class="input-group">
+        <input type="text" id="login-username" placeholder="Username" required>
       </div>
+      <div class="input-group">
+        <input type="password" id="login-password" placeholder="Master Password" required>
+      </div>
+      <button type="submit" class="btn-primary">Login</button>
+      <div class="error" id="login-error"></div>
+    </form>
 
-      <!-- Login Form -->
-      <form id="login-form" class="auth-form active">
-        <div class="form-group">
-          <label for="login-username">Username</label>
-          <input type="text" id="login-username" placeholder="Enter username" required>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Master Password</label>
-          <input type="password" id="login-password" placeholder="Enter master password" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-        <div id="login-error" class="error-message"></div>
-      </form>
-
-      <!-- Register Form -->
-      <form id="register-form" class="auth-form">
-        <div class="form-group">
-          <label for="register-username">Username</label>
-          <input type="text" id="register-username" placeholder="Choose username" required>
-        </div>
-        <div class="form-group">
-          <label for="register-email">Email</label>
-          <input type="email" id="register-email" placeholder="Enter email" required>
-        </div>
-        <div class="form-group">
-          <label for="register-password">Master Password</label>
-          <input type="password" id="register-password" placeholder="Create strong master password" required>
-          <div class="password-strength">
-            <div id="strength-bar" class="strength-bar"></div>
-            <span id="strength-text" class="strength-text"></span>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="register-confirm-password">Confirm Password</label>
-          <input type="password" id="register-confirm-password" placeholder="Confirm master password" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Register</button>
-        <div id="register-error" class="error-message"></div>
-      </form>
-    </div>
+    <!-- Register Form -->
+    <form id="register-form" class="form">
+      <div class="input-group">
+        <input type="text" id="register-username" placeholder="Username" required>
+      </div>
+      <div class="input-group">
+        <input type="email" id="register-email" placeholder="Email" required>
+      </div>
+      <div class="input-group">
+        <input type="password" id="register-password" placeholder="Master Password" required>
+      </div>
+      <div class="strength-bar">
+        <div id="strength-fill"></div>
+      </div>
+      <span id="strength-text" class="strength-label"></span>
+      <button type="submit" class="btn-primary">Create Account</button>
+      <div class="error" id="register-error"></div>
+    </form>
   </div>
 
   <!-- Main Screen -->
-  <div id="main-screen" class="screen" style="display: none;">
+  <div id="main-screen" class="screen" style="display:none;">
     <div class="header">
-      <h1>🔐 My Passwords</h1>
-      <button id="logout-btn" class="btn btn-secondary btn-sm">Logout</button>
+      <div class="header-content">
+        <svg class="logo-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <h2>My Passwords</h2>
+      </div>
+      <button id="logout-btn" class="btn-icon" title="Logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Search Bar -->
-    <div class="search-container">
-      <input type="text" id="search-input" placeholder="Search passwords..." class="search-input">
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="Search passwords...">
     </div>
 
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button id="add-password-btn" class="btn btn-primary">+ Add Password</button>
-      <button id="generate-password-btn" class="btn btn-secondary">Generate Password</button>
+    <div class="action-bar">
+      <button id="add-btn" class="btn-primary btn-full">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Password
+      </button>
     </div>
 
-    <!-- Password List -->
-    <div id="password-list" class="password-list">
-      <!-- Passwords will be dynamically loaded here -->
-    </div>
+    <div id="password-list" class="password-list"></div>
 
-    <div id="no-passwords" class="empty-state" style="display: none;">
-      <p>No passwords saved yet</p>
-      <p class="subtitle">Click "Add Password" to get started</p>
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <p>No passwords yet</p>
+      <span>Click "Add Password" to get started</span>
     </div>
   </div>
 
-  <!-- Add/Edit Password Modal -->
-  <div id="password-modal" class="modal" style="display: none;">
+  <!-- Add/Edit Modal -->
+  <div id="password-modal" class="modal" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="modal-title">Add Password</h2>
-        <button class="close-btn">&times;</button>
+        <h3 id="modal-title">Add Password</h3>
+        <button class="btn-icon modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
       <form id="password-form">
-        <div class="form-group">
-          <label for="modal-website-url">Website URL</label>
-          <input type="url" id="modal-website-url" placeholder="https://example.com" required>
+        <div class="input-group">
+          <label>Website URL</label>
+          <input type="url" id="modal-url" placeholder="https://example.com" required>
         </div>
-        <div class="form-group">
-          <label for="modal-website-name">Website Name</label>
-          <input type="text" id="modal-website-name" placeholder="Example Site">
+        <div class="input-group">
+          <label>Site Name</label>
+          <input type="text" id="modal-name" placeholder="Example Site">
         </div>
-        <div class="form-group">
-          <label for="modal-username">Username/Email</label>
+        <div class="input-group">
+          <label>Username/Email</label>
           <input type="text" id="modal-username" placeholder="user@example.com">
         </div>
-        <div class="form-group">
-          <label for="modal-password">Password</label>
+        <div class="input-group">
+          <label>Password</label>
           <div class="password-input-group">
-            <input type="password" id="modal-password" placeholder="Enter password" required>
-            <button type="button" class="btn btn-icon" id="toggle-password-visibility">👁️</button>
-            <button type="button" class="btn btn-icon" id="generate-modal-password">🎲</button>
+            <input type="password" id="modal-password" placeholder="••••••••" required>
+            <button type="button" class="btn-icon" id="generate-btn" title="Generate Password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
           </div>
         </div>
-        <div class="form-group">
-          <label for="modal-notes">Notes (optional)</label>
-          <textarea id="modal-notes" placeholder="Additional notes" rows="3"></textarea>
+        <div class="input-group">
+          <label>Notes (optional)</label>
+          <textarea id="modal-notes" rows="2" placeholder="Additional notes..."></textarea>
         </div>
         <div class="modal-actions">
-          <button type="submit" class="btn btn-primary" id="save-password-btn">Save</button>
-          <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+          <button type="button" class="btn-secondary modal-close">Cancel</button>
         </div>
-        <div id="modal-error" class="error-message"></div>
+        <div class="error" id="modal-error"></div>
       </form>
-    </div>
-  </div>
-
-  <!-- Password Generator Modal -->
-  <div id="generator-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Password Generator</h2>
-        <button class="close-btn">&times;</button>
-      </div>
-      <div class="generator-content">
-        <div class="generated-password-display">
-          <input type="text" id="generated-password-text" readonly>
-          <button class="btn btn-icon" id="copy-generated-password">📋</button>
-        </div>
-        <div class="form-group">
-          <label for="password-length">Length: <span id="length-value">16</span></label>
-          <input type="range" id="password-length" min="8" max="32" value="16">
-        </div>
-        <div class="checkbox-group">
-          <label>
-            <input type="checkbox" id="include-lowercase" checked>
-            Lowercase (a-z)
-          </label>
-          <label>
-            <input type="checkbox" id="include-uppercase" checked>
-            Uppercase (A-Z)
-          </label>
-          <label>
-            <input type="checkbox" id="include-numbers" checked>
-            Numbers (0-9)
-          </label>
-          <label>
-            <input type="checkbox" id="include-symbols" checked>
-            Symbols (!@#$...)
-          </label>
-        </div>
-        <button class="btn btn-primary" id="regenerate-password">Generate New Password</button>
-      </div>
     </div>
   </div>
 
   <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+  <div id="loading" class="loading" style="display:none;">
     <div class="spinner"></div>
-    <p>Loading...</p>
+    <p class="loading-text">Loading...</p>
   </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" style="display:none;"></div>
 
   <script src="crypto.js"></script>
   <script src="api.js"></script>

@@ -1,29 +1,24 @@
 {
   "manifest_version": 3,
-  "name": "Secure Password Manager",
+  "name": "SecureVault",
   "version": "1.0.0",
-  "description": "Zero-knowledge password manager with client-side encryption",
+  "description": "Minimal zero-knowledge password manager",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "storage",
-    "activeTab",
-    "tabs",
-    "webRequest"
+    "activeTab"
   ],
   "host_permissions": [
-    "http://*/*",
-    "https://*/*"
+    "http://localhost:5000/*",
+    "http://127.0.0.1:5000/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    }
-  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -31,13 +26,5 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }

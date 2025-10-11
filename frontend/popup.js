@@ -1,100 +1,51 @@
-/**
- * Main popup logic for Password Manager Extension
- */
-
-// Initialize modules
-const crypto = new CryptoManager();
+const cryptoManager = new CryptoManager();
 const api = new APIClient('http://localhost:5000');
 
-// State management
 let currentUser = null;
 let masterPassword = null;
 let passwords = [];
 let currentPasswordId = null;
 
-// DOM Elements
-const loginScreen = document.getElementById('login-screen');
+const authScreen = document.getElementById('auth-screen');
 const mainScreen = document.getElementById('main-screen');
-const loadingOverlay = document.getElementById('loading-overlay');
+const loading = document.getElementById('loading');
+const toast = document.getElementById('toast');
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', async () => {
-  await checkAuthentication();
-  setupEventListeners();
+// Initialize
+(async function init() {
+  try {
+    const token = await api.getToken();
+    const userData = await chrome.storage.local.get('current_user');
+    const sessionData = await chrome.storage.session.get('master_password');
+    
+    if (token && userData.current_user) {
+      currentUser = userData.current_user;
+      if (sessionData.master_password) {
+        masterPassword = sessionData.master_password;
+      }
+      showMainScreen();
+      await loadPasswords();
+    } else {
+      showAuthScreen();
+    }
+  } catch (error) {
+    showAuthScreen();
+  }
+})();
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`${tab.dataset.tab}-form`).classList.add('active');
+  });
 });
 
-/**
- * Check if user is already authenticated
- */
-async function checkAuthentication() {
-  const token = await api.getToken();
-  const storedUser = await chrome.storage.local.get('current_user');
-  
-  if (token && storedUser.current_user) {
-    currentUser = storedUser.current_user;
-    showMainScreen();
-  } else {
-    showLoginScreen();
-  }
-}
-
-/**
- * Setup all event listeners
- */
-function setupEventListeners() {
-  // Tab switching
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-  });
-
-  // Auth forms
-  document.getElementById('login-form').addEventListener('submit', handleLogin);
-  document.getElementById('register-form').addEventListener('submit', handleRegister);
-  document.getElementById('logout-btn').addEventListener('click', handleLogout);
-
-  // Password strength meter
-  document.getElementById('register-password').addEventListener('input', updatePasswordStrength);
-
-  // Main screen actions
-  document.getElementById('add-password-btn').addEventListener('click', () => showPasswordModal());
-  document.getElementById('generate-password-btn').addEventListener('click', showGeneratorModal);
-  document.getElementById('search-input').addEventListener('input', handleSearch);
-
-  // Modal actions
-  document.querySelectorAll('.close-btn, .cancel-btn').forEach(btn => {
-    btn.addEventListener('click', closeModals);
-  });
-  document.getElementById('password-form').addEventListener('submit', handleSavePassword);
-  document.getElementById('toggle-password-visibility').addEventListener('click', togglePasswordVisibility);
-  document.getElementById('generate-modal-password').addEventListener('click', generatePasswordForModal);
-
-  // Generator actions
-  document.getElementById('password-length').addEventListener('input', (e) => {
-    document.getElementById('length-value').textContent = e.target.value;
-  });
-  document.getElementById('regenerate-password').addEventListener('click', generatePassword);
-  document.getElementById('copy-generated-password').addEventListener('click', copyGeneratedPassword);
-}
-
-/**
- * Switch between login and register tabs
- */
-function switchTab(tabName) {
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.tab === tabName);
-  });
-  
-  document.querySelectorAll('.auth-form').forEach(form => {
-    form.classList.toggle('active', form.id === `${tabName}-form`);
-  });
-}
-
-/**
- * Handle user login
- */
-async function handleLogin(e) {
+// Login
+document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   
@@ -102,517 +53,347 @@ async function handleLogin(e) {
     showError('login-error', 'Please fill in all fields');
     return;
   }
-
+  
   showLoading(true);
-
   try {
     const response = await api.login(username, password);
-    
     masterPassword = password;
     currentUser = response.user;
-    
-    await chrome.storage.local.set({ 
-      current_user: currentUser,
-      master_password_hint: username // For session only
-    });
-    
+    await chrome.storage.session.set({ master_password: password });
+    await chrome.storage.local.set({ current_user: currentUser });
     showMainScreen();
     await loadPasswords();
-    
+    showToast('Welcome back!');
   } catch (error) {
     showError('login-error', error.message || 'Login failed');
   } finally {
     showLoading(false);
   }
-}
+});
 
-/**
- * Handle user registration
- */
-async function handleRegister(e) {
+// Register
+document.getElementById('register-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  
   const username = document.getElementById('register-username').value.trim();
   const email = document.getElementById('register-email').value.trim();
   const password = document.getElementById('register-password').value;
-  const confirmPassword = document.getElementById('register-confirm-password').value;
   
   if (!username || !email || !password) {
     showError('register-error', 'Please fill in all fields');
     return;
   }
-
-  if (password !== confirmPassword) {
-    showError('register-error', 'Passwords do not match');
-    return;
-  }
-
-  const strength = crypto.calculatePasswordStrength(password);
+  
+  const strength = cryptoManager.calculatePasswordStrength(password);
   if (strength < 60) {
-    showError('register-error', 'Please use a stronger password');
+    showError('register-error', 'Password too weak');
     return;
   }
-
+  
   showLoading(true);
-
   try {
     const response = await api.register(username, email, password);
-    
     masterPassword = password;
     currentUser = response.user;
-    
-    await chrome.storage.local.set({ 
-      current_user: currentUser,
-      master_password_hint: username
-    });
-    
+    await chrome.storage.session.set({ master_password: password });
+    await chrome.storage.local.set({ current_user: currentUser });
     showMainScreen();
-    await loadPasswords();
-    
+    showToast('Account created successfully!');
   } catch (error) {
     showError('register-error', error.message || 'Registration failed');
   } finally {
     showLoading(false);
   }
-}
+});
 
-/**
- * Handle logout
- */
-async function handleLogout() {
+// Password strength
+document.getElementById('register-password').addEventListener('input', (e) => {
+  const strength = cryptoManager.calculatePasswordStrength(e.target.value);
+  const fill = document.getElementById('strength-fill');
+  const text = document.getElementById('strength-text');
+  fill.style.width = strength + '%';
+  text.textContent = strength < 40 ? 'Weak' : strength < 70 ? 'Medium' : 'Strong';
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', async () => {
   await api.logout();
   await chrome.storage.local.clear();
-  
+  await chrome.storage.session.clear();
   currentUser = null;
   masterPassword = null;
   passwords = [];
-  
-  showLoginScreen();
-}
+  showAuthScreen();
+  showToast('Logged out');
+});
 
-/**
- * Update password strength meter
- */
-function updatePasswordStrength(e) {
-  const password = e.target.value;
-  const strength = crypto.calculatePasswordStrength(password);
-  
-  const strengthBar = document.getElementById('strength-bar');
-  const strengthText = document.getElementById('strength-text');
-  
-  strengthBar.style.width = `${strength}%`;
-  
-  if (strength < 40) {
-    strengthBar.style.background = '#dc3545';
-    strengthText.textContent = 'Weak';
-    strengthText.style.color = '#dc3545';
-  } else if (strength < 70) {
-    strengthBar.style.background = '#ffc107';
-    strengthText.textContent = 'Medium';
-    strengthText.style.color = '#ffc107';
-  } else {
-    strengthBar.style.background = '#28a745';
-    strengthText.textContent = 'Strong';
-    strengthText.style.color = '#28a745';
-  }
-}
-
-/**
- * Load all passwords from backend
- */
+// Load passwords
 async function loadPasswords() {
   if (!masterPassword) {
-    // Request master password from user
-    const password = prompt('Enter your master password to decrypt passwords:');
-    if (!password) return;
-    masterPassword = password;
+    const sessionData = await chrome.storage.session.get('master_password');
+    if (sessionData.master_password) {
+      masterPassword = sessionData.master_password;
+    } else {
+      return;
+    }
   }
-
+  
   showLoading(true);
-
   try {
     const response = await api.getPasswords();
-    passwords = response.passwords;
+    passwords = response.passwords || [];
     
-    // Decrypt passwords client-side
     for (let pwd of passwords) {
       try {
-        if (pwd.username) {
-          pwd.decrypted_username = await crypto.decrypt(pwd.username, masterPassword);
-        }
-        if (pwd.notes) {
-          pwd.decrypted_notes = await crypto.decrypt(pwd.notes, masterPassword);
+        if (pwd.username && pwd.username.trim()) {
+          pwd.decrypted_username = await cryptoManager.decrypt(pwd.username, masterPassword);
+        } else {
+          pwd.decrypted_username = '';
         }
       } catch (error) {
-        console.error('Decryption failed for password:', pwd.id);
+        pwd.decrypted_username = '[Error]';
       }
     }
     
     displayPasswords(passwords);
-    
   } catch (error) {
-    showError('main-error', 'Failed to load passwords');
+    showToast('Failed to load passwords');
   } finally {
     showLoading(false);
   }
 }
 
-/**
- * Display passwords in the list
- */
-function displayPasswords(passwordsToDisplay) {
-  const passwordList = document.getElementById('password-list');
-  const noPasswords = document.getElementById('no-passwords');
+// Display passwords
+function displayPasswords(passwordsToDisplay = passwords) {
+  const list = document.getElementById('password-list');
+  const empty = document.getElementById('empty-state');
   
-  passwordList.innerHTML = '';
-  
-  if (passwordsToDisplay.length === 0) {
-    passwordList.style.display = 'none';
-    noPasswords.style.display = 'block';
+  if (!passwordsToDisplay || passwordsToDisplay.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
     return;
   }
   
-  passwordList.style.display = 'block';
-  noPasswords.style.display = 'none';
+  list.style.display = 'block';
+  empty.style.display = 'none';
+  list.innerHTML = '';
   
   passwordsToDisplay.forEach(pwd => {
-    const item = createPasswordItem(pwd);
-    passwordList.appendChild(item);
+    const item = document.createElement('div');
+    item.className = 'password-item';
+    
+    const header = document.createElement('div');
+    header.className = 'password-header';
+    header.innerHTML = `
+      <div class="password-info">
+        <div class="password-title">${escapeHtml(pwd.website_name || 'Untitled')}</div>
+        <div class="password-url">${escapeHtml(pwd.website_url)}</div>
+        ${pwd.decrypted_username ? `<div class="password-username">${escapeHtml(pwd.decrypted_username)}</div>` : ''}
+      </div>
+    `;
+    
+    const actions = document.createElement('div');
+    actions.className = 'password-actions';
+    
+    const copyBtn = createButton('Copy', 'btn-primary', async () => await copyPassword(pwd.id));
+    const editBtn = createButton('Edit', 'btn-secondary', async () => await editPassword(pwd.id));
+    const deleteBtn = createButton('Delete', 'btn-secondary', async () => await deletePassword(pwd.id));
+    
+    actions.appendChild(copyBtn);
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    
+    item.appendChild(header);
+    item.appendChild(actions);
+    list.appendChild(item);
   });
 }
 
-/**
- * Create password list item element
- */
-function createPasswordItem(pwd) {
-  const item = document.createElement('div');
-  item.className = 'password-item';
-  item.dataset.passwordId = pwd.id;
-  
-  item.innerHTML = `
-    <div class="password-item-header">
-      <div class="password-item-title">${escapeHtml(pwd.website_name || 'Untitled')}</div>
-    </div>
-    <div class="password-item-url">${escapeHtml(pwd.website_url)}</div>
-    <div class="password-item-actions">
-      <button class="autofill-btn" data-id="${pwd.id}">Autofill</button>
-      <button class="copy-btn" data-id="${pwd.id}">Copy</button>
-      <button class="edit-btn" data-id="${pwd.id}">Edit</button>
-      <button class="delete-btn" data-id="${pwd.id}">Delete</button>
-    </div>
-  `;
-  
-  // Event listeners
-  item.querySelector('.autofill-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    handleAutofill(pwd.id);
-  });
-  
-  item.querySelector('.copy-btn').addEventListener('click', async (e) => {
-    e.stopPropagation();
-    await handleCopyPassword(pwd.id);
-  });
-  
-  item.querySelector('.edit-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    showPasswordModal(pwd.id);
-  });
-  
-  item.querySelector('.delete-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    handleDeletePassword(pwd.id);
-  });
-  
-  return item;
+function createButton(text, className, onClick) {
+  const btn = document.createElement('button');
+  btn.textContent = text;
+  btn.className = className;
+  btn.addEventListener('click', onClick);
+  return btn;
 }
 
-/**
- * Handle search
- */
-function handleSearch(e) {
-  const query = e.target.value.toLowerCase().trim();
-  
-  if (!query) {
-    displayPasswords(passwords);
-    return;
-  }
-  
-  const filtered = passwords.filter(pwd => {
-    return pwd.website_name?.toLowerCase().includes(query) ||
-           pwd.website_url?.toLowerCase().includes(query) ||
-           pwd.decrypted_username?.toLowerCase().includes(query);
-  });
-  
-  displayPasswords(filtered);
-}
-/**
- * Show password modal for add/edit
- */
-function showPasswordModal(passwordId = null) {
-  currentPasswordId = passwordId;
-  const modal = document.getElementById('password-modal');
-  const title = document.getElementById('modal-title');
-  
-  if (passwordId) {
-    title.textContent = 'Edit Password';
+// Copy password
+async function copyPassword(passwordId) {
+  try {
     const pwd = passwords.find(p => p.id === passwordId);
-    if (pwd) {
-      document.getElementById('modal-website-url').value = pwd.website_url || '';
-      document.getElementById('modal-website-name').value = pwd.website_name || '';
-      document.getElementById('modal-username').value = pwd.decrypted_username || '';
-      document.getElementById('modal-notes').value = pwd.decrypted_notes || '';
-    }
-  } else {
-    title.textContent = 'Add Password';
-    document.getElementById('password-form').reset();
+    if (!pwd) throw new Error('Password not found');
+    
+    showLoading(true);
+    const decrypted = await cryptoManager.decrypt(pwd.encrypted_password, masterPassword);
+    await navigator.clipboard.writeText(decrypted);
+    showToast('Password copied!');
+  } catch (error) {
+    showToast('Failed to copy');
+  } finally {
+    showLoading(false);
   }
-  
-  modal.style.display = 'flex';
 }
 
-/**
- * Handle save password
- */
-async function handleSavePassword(e) {
+// Edit password
+async function editPassword(passwordId) {
+  const pwd = passwords.find(p => p.id === passwordId);
+  if (!pwd) return;
+  
+  currentPasswordId = passwordId;
+  
+  showLoading(true);
+  try {
+    const decryptedPassword = await cryptoManager.decrypt(pwd.encrypted_password, masterPassword);
+    
+    document.getElementById('modal-title').textContent = 'Edit Password';
+    document.getElementById('modal-url').value = pwd.website_url || '';
+    document.getElementById('modal-name').value = pwd.website_name || '';
+    document.getElementById('modal-username').value = pwd.decrypted_username || '';
+    document.getElementById('modal-password').value = decryptedPassword;
+    document.getElementById('modal-notes').value = '';
+    
+    document.getElementById('password-modal').style.display = 'flex';
+  } catch (error) {
+    showToast('Failed to load password');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Delete password
+async function deletePassword(passwordId) {
+  if (!confirm('Delete this password?')) return;
+  
+  showLoading(true);
+  try {
+    await api.deletePassword(passwordId);
+    showToast('Password deleted');
+    await loadPasswords();
+  } catch (error) {
+    showToast('Failed to delete');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Add password
+document.getElementById('add-btn').addEventListener('click', () => {
+  currentPasswordId = null;
+  document.getElementById('modal-title').textContent = 'Add Password';
+  document.getElementById('password-form').reset();
+  document.getElementById('password-modal').style.display = 'flex';
+});
+
+// Save password
+document.getElementById('password-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  const websiteUrl = document.getElementById('modal-website-url').value.trim();
-  const websiteName = document.getElementById('modal-website-name').value.trim();
+  const url = document.getElementById('modal-url').value.trim();
+  const name = document.getElementById('modal-name').value.trim();
   const username = document.getElementById('modal-username').value.trim();
   const password = document.getElementById('modal-password').value;
   const notes = document.getElementById('modal-notes').value.trim();
   
-  if (!websiteUrl || !password) {
-    showError('modal-error', 'Website URL and password are required');
+  if (!url || !password) {
+    showError('modal-error', 'URL and password required');
     return;
   }
-
+  
   showLoading(true);
-
   try {
-    // Encrypt data client-side
-    const encryptedPassword = await crypto.encrypt(password, masterPassword);
-    const encryptedUsername = username ? await crypto.encrypt(username, masterPassword) : '';
-    const encryptedNotes = notes ? await crypto.encrypt(notes, masterPassword) : '';
+    const encryptedPassword = await cryptoManager.encrypt(password, masterPassword);
+    const encryptedUsername = username ? await cryptoManager.encrypt(username, masterPassword) : '';
+    const encryptedNotes = notes ? await cryptoManager.encrypt(notes, masterPassword) : '';
     
     const passwordData = {
-      website_url: websiteUrl,
-      website_name: websiteName,
+      website_url: url,
+      website_name: name || url,
       username: encryptedUsername,
       encrypted_password: encryptedPassword,
       notes: encryptedNotes,
-      iv: 'client-side-handled'
+      iv: 'client-handled'
     };
     
     if (currentPasswordId) {
       await api.updatePassword(currentPasswordId, passwordData);
+      showToast('Password updated');
     } else {
       await api.createPassword(passwordData);
+      showToast('Password saved');
     }
     
-    closeModals();
+    document.getElementById('password-modal').style.display = 'none';
     await loadPasswords();
-    
   } catch (error) {
-    showError('modal-error', error.message || 'Failed to save password');
+    showError('modal-error', error.message);
   } finally {
     showLoading(false);
   }
-}
+});
 
-/**
- * Handle delete password
- */
-async function handleDeletePassword(passwordId) {
-  if (!confirm('Are you sure you want to delete this password?')) {
+// Generate password
+document.getElementById('generate-btn').addEventListener('click', () => {
+  try {
+    const generated = cryptoManager.generatePassword(16);
+    document.getElementById('modal-password').value = generated;
+    showToast('Password generated');
+  } catch (error) {
+    showToast('Generation failed');
+  }
+});
+
+// Close modal
+document.querySelectorAll('.modal-close').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('password-modal').style.display = 'none';
+  });
+});
+
+// Search
+document.getElementById('search-input').addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query) {
+    displayPasswords(passwords);
     return;
   }
-
-  showLoading(true);
-
-  try {
-    await api.deletePassword(passwordId);
-    await loadPasswords();
-  } catch (error) {
-    alert('Failed to delete password');
-  } finally {
-    showLoading(false);
-  }
-}
-
-/**
- * Handle copy password
- */
-async function handleCopyPassword(passwordId) {
-  const pwd = passwords.find(p => p.id === passwordId);
-  if (!pwd) return;
-
-  try {
-    const decryptedPassword = await crypto.decrypt(pwd.encrypted_password, masterPassword);
-    await navigator.clipboard.writeText(decryptedPassword);
-    
-    // Show temporary notification
-    showNotification('Password copied to clipboard!');
-  } catch (error) {
-    alert('Failed to copy password');
-  }
-}
-
-/**
- * Handle autofill
- */
-async function handleAutofill(passwordId) {
-  const pwd = passwords.find(p => p.id === passwordId);
-  if (!pwd) return;
-
-  try {
-    const decryptedPassword = await crypto.decrypt(pwd.encrypted_password, masterPassword);
-    const decryptedUsername = pwd.username ? await crypto.decrypt(pwd.username, masterPassword) : '';
-    
-    // Send message to content script
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'autofill',
-      username: decryptedUsername,
-      password: decryptedPassword
-    });
-    
-    window.close();
-  } catch (error) {
-    alert('Failed to autofill');
-  }
-}
-
-/**
- * Show password generator modal
- */
-function showGeneratorModal() {
-  const modal = document.getElementById('generator-modal');
-  modal.style.display = 'flex';
-  generatePassword();
-}
-
-/**
- * Generate random password
- */
-function generatePassword() {
-  const length = parseInt(document.getElementById('password-length').value);
-  const options = {
-    lowercase: document.getElementById('include-lowercase').checked,
-    uppercase: document.getElementById('include-uppercase').checked,
-    numbers: document.getElementById('include-numbers').checked,
-    symbols: document.getElementById('include-symbols').checked
-  };
-  
-  try {
-    const password = crypto.generatePassword(length, options);
-    document.getElementById('generated-password-text').value = password;
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
-/**
- * Generate password for modal input
- */
-function generatePasswordForModal() {
-  const password = crypto.generatePassword(16);
-  document.getElementById('modal-password').value = password;
-}
-
-/**
- * Copy generated password
- */
-async function copyGeneratedPassword() {
-  const password = document.getElementById('generated-password-text').value;
-  await navigator.clipboard.writeText(password);
-  showNotification('Password copied!');
-}
-
-/**
- * Toggle password visibility
- */
-function togglePasswordVisibility() {
-  const input = document.getElementById('modal-password');
-  input.type = input.type === 'password' ? 'text' : 'password';
-}
-
-/**
- * Close all modals
- */
-function closeModals() {
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.style.display = 'none';
+  const filtered = passwords.filter(pwd => {
+    const searchText = `${pwd.website_name} ${pwd.website_url} ${pwd.decrypted_username || ''}`.toLowerCase();
+    return searchText.includes(query);
   });
-  document.getElementById('password-form').reset();
-  currentPasswordId = null;
-}
+  displayPasswords(filtered);
+});
 
-/**
- * Show/hide loading overlay
- */
+// Utilities
 function showLoading(show) {
-  loadingOverlay.style.display = show ? 'flex' : 'none';
+  loading.style.display = show ? 'flex' : 'none';
 }
 
-/**
- * Show error message
- */
 function showError(elementId, message) {
-  const errorElement = document.getElementById(elementId);
-  errorElement.textContent = message;
-  errorElement.classList.add('show');
-  
-  setTimeout(() => {
-    errorElement.classList.remove('show');
-  }, 5000);
+  const errorEl = document.getElementById(elementId);
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    setTimeout(() => errorEl.style.display = 'none', 5000);
+  }
 }
 
-/**
- * Show temporary notification
- */
-function showNotification(message) {
-  const notification = document.createElement('div');
-  notification.textContent = message;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #28a745;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 3000;
-  `;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.remove();
-  }, 2000);
+function showToast(message) {
+  toast.textContent = message;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 3000);
 }
 
-/**
- * Show login screen
- */
-function showLoginScreen() {
-  loginScreen.style.display = 'block';
+function showAuthScreen() {
+  authScreen.style.display = 'block';
   mainScreen.style.display = 'none';
 }
 
-/**
- * Show main screen
- */
 function showMainScreen() {
-  loginScreen.style.display = 'none';
+  authScreen.style.display = 'none';
   mainScreen.style.display = 'block';
 }
 
-/**
- * Escape HTML to prevent XSS
- */
 function escapeHtml(text) {
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = text || '';
   return div.innerHTML;
 }
