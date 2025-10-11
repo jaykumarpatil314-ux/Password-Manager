@@ -1,389 +1,677 @@
-# Backend Setup Guide
+# 🔐 Password Manager Backend
 
-This guide covers the complete setup and configuration of the Password Manager backend server.
+> A secure, zero-knowledge password manager backend built with Python Flask. Seamlessly switch between PostgreSQL and MongoDB with enterprise-grade security.
 
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [PostgreSQL Installation](#postgresql-installation)
-3. [Database Setup](#database-setup)
-4. [Python Environment Setup](#python-environment-setup)
-5. [Environment Configuration](#environment-configuration)
-6. [Running the Server](#running-the-server)
-7. [Testing](#testing)
-8. [Production Deployment](#production-deployment)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## Prerequisites
+## ✨ Features
 
-- Python 3.8 or higher
-- PostgreSQL 12 or higher
-- pip (Python package manager)
-- virtualenv (recommended)
-
----
-
-## PostgreSQL Installation
-
-### Ubuntu/Debian
-
-```bash
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-```
-
-### macOS
-
-```bash
-brew install postgresql
-```
-
-### Windows
-
-Download and install from [PostgreSQL official website](https://www.postgresql.org/download/windows/)
-
-### Start PostgreSQL Service
-
-**Linux:**
-```bash
-sudo service postgresql start
-```
-
-**macOS:**
-```bash
-brew services start postgresql
-```
-
-**Windows:**
-PostgreSQL service starts automatically after installation.
+- 🔐 **Zero-Knowledge Architecture** - Server never sees plaintext passwords
+- 🔄 **Multi-Database Support** - Switch between PostgreSQL and MongoDB seamlessly
+- ☁️ **Cloud-Ready** - Works with MongoDB Atlas, AWS RDS, and more
+- 🔑 **Strong Authentication** - Argon2 password hashing + JWT tokens
+- 🛡️ **Client-Side Encryption** - AES-256-GCM with PBKDF2 key derivation
+- 🌐 **RESTful API** - Clean, well-documented endpoints
+- ⚡ **WebSocket Support** - Real-time sync capabilities (Flask-SocketIO)
+- 🎯 **Repository Pattern** - Clean, maintainable architecture
+- 📊 **Production Ready** - CORS, error handling, connection pooling
 
 ---
 
-## Database Setup
+## 🏗️ Architecture
 
-### Create Database and User
-
-1. Access PostgreSQL shell:
-
-```bash
-sudo -u postgres psql
 ```
-
-2. Run the following SQL commands:
-
-```sql
-CREATE DATABASE password_manager;
-CREATE USER pmuser WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE password_manager TO pmuser;
-\q
+┌─────────────────────────────────────────────────────────┐
+│                   Flask Application                      │
+│                       (app.py)                           │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+              ┌─────────────────────┐
+              │  Database Factory   │
+              │   (db_factory.py)   │
+              │  - Selects DB based │
+              │    on environment   │
+              └──────────┬──────────┘
+                         │
+        ┌────────────────┴────────────────┐
+        ▼                                 ▼
+┌──────────────────┐           ┌──────────────────┐
+│   PostgreSQL     │           │     MongoDB      │
+│   Repository     │           │    Repository    │
+└──────────────────┘           └──────────────────┘
 ```
-
-**Important**: Replace `'secure_password'` with a strong password of your choice.
-
-### Verify Database Creation
-
-```bash
-psql -U pmuser -d password_manager -h localhost
-# Enter the password you set above
-```
-
-If successful, you'll see the PostgreSQL prompt.
 
 ---
 
-## Python Environment Setup
+## 🛠️ Tech Stack
 
-### Navigate to Backend Directory
+| Category | Technology |
+|----------|-----------|
+| **Framework** | Flask 3.1.2 |
+| **Databases** | PostgreSQL (SQLAlchemy) + MongoDB (PyMongo) |
+| **Authentication** | Argon2-CFFI, PyJWT |
+| **Security** | Cryptography library, CORS |
+| **WebSocket** | Flask-SocketIO |
+| **Environment** | python-dotenv |
 
-```bash
-cd backend
+---
+
+## 📁 Project Structure
+
+```
+backend/
+├── app.py                      # Main Flask application
+├── config.py                   # Configuration management
+├── auth.py                     # Authentication & JWT logic
+├── crypto_utils.py             # Security utilities
+├── requirements.txt            # Python dependencies
+├── .env                        # Environment variables (gitignored)
+├── .env.example                # Environment template
+├── database/
+│   ├── __init__.py
+│   ├── base_repository.py      # Abstract repository interface
+│   ├── db_factory.py           # Database factory/selector
+│   ├── postgres_repository.py  # PostgreSQL implementation
+│   └── mongodb_repository.py   # MongoDB implementation
+└── models/
+    ├── __init__.py
+    └── postgres_models.py      # SQLAlchemy models
 ```
 
-### Create Virtual Environment
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.9+
+- PostgreSQL (optional, for PostgreSQL mode)
+- MongoDB (optional, for MongoDB mode)
+
+### 1️⃣ Clone Repository
 
 ```bash
-python3 -m venv venv
+git clone https://github.com/yourusername/password-manager.git
+cd password-manager/backend
 ```
 
-### Activate Virtual Environment
+### 2️⃣ Create Virtual Environment
 
-**Linux/macOS:**
 ```bash
-source venv/bin/activate
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-**Windows:**
-```bash
-venv\Scripts\activate
-```
-
-### Install Dependencies
+### 3️⃣ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Verify Installation
+### 4️⃣ Configure Environment
+
+Copy the example environment file:
 
 ```bash
-pip list
+cp .env.example .env
 ```
 
-You should see Flask, psycopg2, PyJWT, and other dependencies listed.
-
----
-
-## Environment Configuration
-
-### Create Environment File
-
-Create a `.env` file in the backend directory:
-
-```bash
-touch .env
-```
-
-### Add Configuration Variables
-
-Open `.env` in your text editor and add:
+Edit `.env` with your configuration:
 
 ```env
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=password_manager
-DB_USER=pmuser
-DB_PASSWORD=secure_password
-
 # Flask Configuration
 FLASK_ENV=development
-FLASK_DEBUG=True
-SECRET_KEY=your-secret-key-here
-
-# JWT Configuration
+SECRET_KEY=your-secret-key-here-change-in-production
 JWT_SECRET_KEY=your-jwt-secret-key-here
-JWT_ACCESS_TOKEN_EXPIRES=3600
 
-# Server Configuration
-PORT=5000
-HOST=0.0.0.0
+# Database Selection (choose one: postgresql or mongodb)
+DATABASE_TYPE=postgresql
+
+# PostgreSQL Configuration
+POSTGRES_URI=postgresql://username:password@localhost:5432/password_manager
+
+# MongoDB Configuration (Local)
+MONGODB_URI=mongodb://localhost:27017/password_manager
+
+# MongoDB Atlas (Cloud)
+# MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/password_manager?retryWrites=true&w=majority
+
+# CORS Origins (comma-separated)
+CORS_ORIGINS=http://localhost:3000,chrome-extension://your-extension-id
 ```
 
-**Security Notes**:
-- Replace `DB_PASSWORD` with the password you set during database setup
-- Generate strong random values for `SECRET_KEY` and `JWT_SECRET_KEY`
-- For production, set `FLASK_ENV=production` and `FLASK_DEBUG=False`
+### 5️⃣ Setup Database
 
-### Generate Secret Keys
-
-You can generate secure secret keys using Python:
+**For PostgreSQL:**
 
 ```bash
-python -c "import secrets; print(secrets.token_hex(32))"
+# Create database
+createdb password_manager
+
+# Or using psql
+psql -U postgres -c "CREATE DATABASE password_manager;"
 ```
 
----
+**For MongoDB:**
 
-## Running the Server
+MongoDB will auto-create the database on first connection.
 
-### Start the Development Server
+**For MongoDB Atlas (Cloud):**
+1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a cluster
+3. Add database user
+4. Whitelist IP address (0.0.0.0/0 for development)
+5. Get connection string and add to `.env`
+
+### 6️⃣ Run Application
 
 ```bash
 python app.py
 ```
 
-You should see output similar to:
+Expected output:
 
 ```
- * Running on http://0.0.0.0:5000
- * Debug mode: on
+✓ Using PostgreSQL database
+✓ PostgreSQL connection successful
+ * Running on http://0.0.0.0:5000/
 ```
-
-### Verify Server is Running
-
-Open a new terminal and test the API:
-
-```bash
-curl http://localhost:5000/health
-```
-
-Expected response: `{"status": "ok"}`
 
 ---
 
-## Testing
+## ⚙️ Configuration
 
-### Backend Tests
+### Environment Variables
 
-#### Unit Tests
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `FLASK_ENV` | Environment (development/production) | `development` | No |
+| `SECRET_KEY` | Flask secret key | - | ✅ Yes |
+| `JWT_SECRET_KEY` | JWT signing key | - | ✅ Yes |
+| `DATABASE_TYPE` | Database type (`postgresql` or `mongodb`) | `postgresql` | ✅ Yes |
+| `POSTGRES_URI` | PostgreSQL connection string | - | If using PostgreSQL |
+| `MONGODB_URI` | MongoDB connection string | - | If using MongoDB |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `*` | No |
 
-If unit tests are available, run:
+### 🔑 Generate Secret Keys
 
-```bash
-python -m pytest tests/
+```python
+import secrets
+print(secrets.token_hex(32))  # Use for SECRET_KEY and JWT_SECRET_KEY
 ```
-
-### Manual Testing Checklist
-
-#### Authentication Tests
-
-- [ ] Register new user with strong password
-- [ ] Register with weak password (should fail with validation error)
-- [ ] Register with duplicate username (should return 409 error)
-- [ ] Login with correct credentials (should return JWT token)
-- [ ] Login with incorrect credentials (should return 401 error)
-- [ ] Logout and verify token is invalidated
-
-#### Password Management Tests
-
-- [ ] Add new password entry (requires authentication)
-- [ ] Retrieve all passwords for authenticated user
-- [ ] Edit existing password entry
-- [ ] Delete password entry
-- [ ] Search passwords by URL/domain
-- [ ] Verify password encryption in database
-
-#### Security Tests
-
-**Database Security:**
-```bash
-# Connect to database and verify encryption
-psql -U pmuser -d password_manager -h localhost
-SELECT * FROM passwords;
-# Verify 'password' field contains encrypted data, not plain text
-```
-
-**API Security:**
-- [ ] Attempt to access protected endpoints without token (should return 401)
-- [ ] Attempt to access another user's passwords (should return 403)
-- [ ] Test SQL injection attempts (should be blocked)
-- [ ] Test XSS attempts in input fields (should be sanitized)
-
-**Token Security:**
-- [ ] Verify token expiration works correctly
-- [ ] Test with invalid/malformed tokens (should return 401)
-- [ ] Verify token contains no sensitive information
-
-### Performance Testing
-
-#### Load Testing
-
-Test with multiple password entries:
-
-```bash
-# Create 100+ test entries
-for i in {1..100}; do
-  curl -X POST http://localhost:5000/api/passwords \
-    -H "Authorization: Bearer YOUR_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"url\":\"test$i.com\",\"username\":\"user$i\",\"password\":\"encrypted_pass$i\"}"
-done
-```
-
-#### Performance Metrics
-
-- [ ] Search response time < 200ms for 100 entries
-- [ ] Encryption/decryption operations < 100ms
-- [ ] API response time < 500ms
-- [ ] Memory usage stable under load
 
 ---
 
-## Production Deployment
+## 🔄 Database Switching
 
-### Security Hardening
+Switch databases by changing one environment variable - **no code changes required!**
 
-1. **Use HTTPS**: Configure SSL/TLS certificates
-2. **Update Environment**:
-   ```env
-   FLASK_ENV=production
-   FLASK_DEBUG=False
-   ```
-3. **Database Security**:
-   - Use strong database passwords
-   - Restrict database access to application server only
-   - Enable SSL for database connections
+### Use PostgreSQL
 
-4. **Server Configuration**:
-   - Use a production WSGI server (Gunicorn, uWSGI)
-   - Configure reverse proxy (Nginx, Apache)
-   - Set up firewall rules
-
-### Deployment with Gunicorn
-
-Install Gunicorn:
 ```bash
-pip install gunicorn
+export DATABASE_TYPE=postgresql
+export POSTGRES_URI=postgresql://user:pass@localhost:5432/password_manager
 ```
 
-Run with Gunicorn:
+### Use MongoDB (Local)
+
 ```bash
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+export DATABASE_TYPE=mongodb
+export MONGODB_URI=mongodb://localhost:27017/password_manager
 ```
 
-### Database Migrations
+### Use MongoDB Atlas (Cloud)
 
-For production, ensure proper database migration strategy:
-- Use tools like Alembic for schema migrations
-- Backup database before migrations
-- Test migrations in staging environment
-
-### Monitoring
-
-Set up monitoring for:
-- Server uptime
-- API response times
-- Error rates
-- Database performance
-- Disk space usage
-
-### Backup Strategy
-
-- Regular automated database backups
-- Store backups in secure, separate location
-- Test backup restoration periodically
+```bash
+export DATABASE_TYPE=mongodb
+export MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/password_manager?retryWrites=true&w=majority
+```
 
 ---
 
-## Troubleshooting
+## 📡 API Endpoints
 
-### Common Issues
+### Authentication
 
-**Database Connection Error:**
-- Verify PostgreSQL is running
-- Check database credentials in `.env`
-- Ensure database and user exist
+#### Register User
 
-**Import Errors:**
-- Verify virtual environment is activated
-- Reinstall dependencies: `pip install -r requirements.txt`
+```http
+POST /api/auth/register
+Content-Type: application/json
 
-**Port Already in Use:**
-- Change PORT in `.env` or kill process using port 5000
-- Find process: `lsof -i :5000` (Linux/macOS) or `netstat -ano | findstr :5000` (Windows)
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "master_password": "SecurePassword123"
+}
+```
 
-**Permission Errors:**
-- Check file permissions
-- Verify user has write access to log directory
+**Response:** `201 Created`
+
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": "uuid",
+    "username": "johndoe",
+    "email": "john@example.com"
+  },
+  "token": "jwt-token-here"
+}
+```
+
+#### Login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "master_password": "SecurePassword123"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Login successful",
+  "user": {
+    "id": "uuid",
+    "username": "johndoe"
+  },
+  "token": "jwt-token-here"
+}
+```
 
 ---
 
-## API Documentation
+### Password Management
 
-For detailed API endpoint documentation, refer to the API documentation file or use tools like Swagger/OpenAPI for interactive documentation.
+All password endpoints require JWT token in Authorization header:
 
-### Quick Reference
+```http
+Authorization: Bearer <jwt-token>
+```
 
-- `POST /api/register` - Register new user
-- `POST /api/login` - Authenticate user
-- `GET /api/passwords` - Get all passwords
-- `POST /api/passwords` - Add new password
-- `PUT /api/passwords/:id` - Update password
-- `DELETE /api/passwords/:id` - Delete password
-- `GET /health` - Health check endpoint
+#### Get All Passwords
 
+```http
+GET /api/passwords
+```
 
+**Response:** `200 OK`
 
-License
-MIT
+```json
+{
+  "passwords": [
+    {
+      "id": "uuid",
+      "website_url": "https://github.com",
+      "website_name": "GitHub",
+      "username": "encrypted-blob",
+      "encrypted_password": "encrypted-blob",
+      "iv": "initialization-vector"
+    }
+  ]
+}
+```
+
+#### Create Password
+
+```http
+POST /api/passwords
+Content-Type: application/json
+
+{
+  "website_url": "https://github.com",
+  "website_name": "GitHub",
+  "username": "encrypted-username-blob",
+  "encrypted_password": "encrypted-password-blob",
+  "iv": "initialization-vector",
+  "notes": "encrypted-notes"
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "message": "Password created successfully",
+  "password": { ... }
+}
+```
+
+#### Update Password
+
+```http
+PUT /api/passwords/{password_id}
+Content-Type: application/json
+
+{
+  "website_name": "Updated Name",
+  "encrypted_password": "new-encrypted-blob"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Password updated successfully"
+}
+```
+
+#### Delete Password
+
+```http
+DELETE /api/passwords/{password_id}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Password deleted successfully"
+}
+```
+
+#### Search Passwords
+
+```http
+POST /api/passwords/search
+Content-Type: application/json
+
+{
+  "url": "github"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "passwords": [ ... ]
+}
+```
+
+---
+
+### Health Check
+
+```http
+GET /health
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "healthy",
+  "database": "postgresql"
+}
+```
+
+---
+
+## 🔒 Security Features
+
+### Zero-Knowledge Architecture
+
+- **Master password never sent to server**
+- **All encryption happens client-side** using Web Crypto API (AES-256-GCM)
+- **Server stores only encrypted blobs**
+- Even with database access, data is unreadable without master password
+
+### Password Hashing
+
+- **Argon2** - Memory-hard algorithm (winner of Password Hashing Competition)
+- **Unique salt** per user (32 bytes)
+- **Parameters**: time_cost=3, memory_cost=64MB, parallelism=4
+
+### JWT Tokens
+
+- **HS256 algorithm** (HMAC-SHA256)
+- **24-hour expiration**
+- **Signed with secret key**
+- Stored client-side only (not in database)
+
+### Input Validation
+
+- Sanitization of all user inputs
+- Password strength validation
+- SQL injection prevention (parameterized queries)
+- XSS prevention (input sanitization)
+
+---
+
+## 🧪 Development
+
+### Run in Debug Mode
+
+```bash
+export FLASK_ENV=development
+python app.py
+```
+
+### Testing
+
+```bash
+# Install test dependencies
+pip install pytest pytest-cov
+
+# Run tests
+pytest tests/ -v
+
+# With coverage
+pytest tests/ --cov=. --cov-report=html
+```
+
+### Code Formatting
+
+```bash
+# Install formatter
+pip install black flake8
+
+# Format code
+black .
+
+# Lint
+flake8 app.py database/ models/
+```
+
+---
+
+## 🚢 Production Deployment
+
+### Using Gunicorn
+
+```bash
+pip install gunicorn gevent
+gunicorn -w 4 -b 0.0.0.0:5000 --worker-class eventlet app:app
+```
+
+### Docker Deployment
+
+**Dockerfile:**
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+```
+
+**Build and run:**
+
+```bash
+docker build -t password-manager-backend .
+docker run -p 5000:5000 --env-file .env password-manager-backend
+```
+
+### Environment-Specific Configs
+
+**Production `.env`:**
+
+```env
+FLASK_ENV=production
+DEBUG=False
+DATABASE_TYPE=mongodb
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/password_manager
+CORS_ORIGINS=https://yourdomain.com
+```
+
+### HTTPS Setup
+
+Use reverse proxy (Nginx):
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+    
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+---
+
+## 🔀 Database Migration
+
+### PostgreSQL to MongoDB
+
+```bash
+# 1. Export data from PostgreSQL
+pg_dump password_manager > backup.sql
+
+# 2. Write migration script (Python)
+# 3. Import to MongoDB
+# 4. Switch database type
+export DATABASE_TYPE=mongodb
+```
+
+### MongoDB to PostgreSQL
+
+```bash
+# 1. Export from MongoDB
+mongodump --uri="mongodb://localhost/password_manager" --out=./backup
+
+# 2. Write migration script
+# 3. Import to PostgreSQL
+# 4. Switch database type
+export DATABASE_TYPE=postgresql
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### CORS Errors
+
+Update `.env`:
+
+```env
+CORS_ORIGINS=chrome-extension://your-extension-id,http://localhost:3000
+```
+
+### MongoDB Authentication Failed
+
+1. Check username/password in Atlas
+2. URL-encode special characters in password
+3. Whitelist IP address (0.0.0.0/0 for development)
+4. Wait 2 minutes after creating user
+
+### PostgreSQL Connection Error
+
+```bash
+# Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# Create database
+createdb password_manager
+
+# Test connection
+psql -U postgres -d password_manager
+```
+
+### Port Already in Use
+
+```bash
+# Find process using port 5000
+lsof -i :5000
+
+# Kill process
+kill -9 <PID>
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 💬 Support
+
+Need help? Reach out to us:
+
+- **GitHub Issues**: [Report an issue](https://github.com/yourusername/password-manager/issues)
+- **Email**: support@yourdomain.com
+
+---
+
+## 🙏 Acknowledgments
+
+Built with amazing open-source technologies:
+
+- [Flask](https://flask.palletsprojects.com/) - Web framework
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) - Cloud database
+- [PostgreSQL](https://www.postgresql.org/) - Relational database
+- [Argon2](https://github.com/P-H-C/phc-winner-argon2) - Password hashing
+- [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) - Client-side encryption
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Password Manager Team**
+
+⭐ Star us on GitHub if you find this project useful!
+
+</div>
