@@ -382,3 +382,8 @@ For detailed API endpoint documentation, refer to the API documentation file or 
 - `PUT /api/passwords/:id` - Update password
 - `DELETE /api/passwords/:id` - Delete password
 - `GET /health` - Health check endpoint
+
+
+
+License
+MIT

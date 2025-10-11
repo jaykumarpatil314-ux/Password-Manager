@@ -74,7 +74,7 @@ For issues or questions:
 
 ## License
 
-This project is provided as-is for educational purposes.
+MIT
 
 ## Security Notice
 
