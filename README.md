@@ -4,7 +4,7 @@
 
 ### Zero-Knowledge Password Manager
 
-*Your passwords. Your control. Encrypted by default.*
+_Your passwords. Your control. Encrypted by default._
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-brightgreen.svg)](https://www.python.org/)
@@ -25,19 +25,19 @@
 
 ### 🔒 Security First
 
-- **Zero-Knowledge Architecture**  
+- **Zero-Knowledge Architecture**
   Master password never leaves your device
-  
-- **Client-Side Encryption**  
+
+- **Client-Side Encryption**
   AES-256-GCM in the browser
-  
-- **Argon2 Password Hashing**  
+
+- **Argon2 Password Hashing**
   Resistant to GPU attacks
-  
-- **JWT Authentication**  
+
+- **JWT Authentication**
   Secure, stateless sessions
-  
-- **No Plaintext Storage**  
+
+- **No Plaintext Storage**
   Only encrypted blobs on server
 
 </td>
@@ -45,19 +45,19 @@
 
 ### ⚡ Modern Stack
 
-- **Multi-Database Support**  
+- **Multi-Database Support**
   PostgreSQL or MongoDB
-  
-- **Cloud-Ready**  
+
+- **Cloud-Ready**
   Atlas, AWS RDS compatible
-  
-- **Repository Pattern**  
+
+- **Repository Pattern**
   Clean architecture
-  
-- **WebSocket Support**  
+
+- **WebSocket Support**
   Real-time sync
-  
-- **RESTful API**  
+
+- **RESTful API**
   Well-documented endpoints
 
 </td>
@@ -66,13 +66,13 @@
 
 ### 🎨 Chrome Extension Features
 
-| Feature | Description |
-|---------|-------------|
-| 🔍 **Smart Search** | Instantly find passwords by website or name |
-| 🎲 **Password Generator** | Create strong, unique passwords |
-| 📋 **One-Click Copy** | Copy passwords with a single click |
-| 💾 **Session Storage** | Secure master password caching |
-| 🎨 **Minimal UI** | Clean, authentic design |
+| Feature                   | Description                                 |
+| ------------------------- | ------------------------------------------- |
+| 🔍 **Smart Search**       | Instantly find passwords by website or name |
+| 🎲 **Password Generator** | Create strong, unique passwords             |
+| 📋 **One-Click Copy**     | Copy passwords with a single click          |
+| 💾 **Session Storage**    | Secure master password caching              |
+| 🎨 **Minimal UI**         | Clean, authentic design                     |
 
 ---
 
@@ -154,6 +154,7 @@ cd frontend/securevault
 **No build needed - ready to load!**
 
 Install in Chrome:
+
 1. Open `chrome://extensions/`
 2. Enable **"Developer mode"** (top right)
 3. Click **"Load unpacked"**
@@ -245,11 +246,13 @@ CORS_ORIGINS=chrome-extension://your-extension-id
 One of the best features - **switch databases without changing code!**
 
 **Use PostgreSQL:**
+
 ```bash
 export DATABASE_TYPE=postgresql
 ```
 
 **Use MongoDB:**
+
 ```bash
 export DATABASE_TYPE=mongodb
 ```
@@ -304,22 +307,22 @@ Your master password is used **only** in your browser to derive an encryption ke
 
 ### 🔐 Encryption Details
 
-| Component | Specification |
-|-----------|--------------|
-| **Algorithm** | AES-256-GCM (Galois/Counter Mode) |
-| **Key Derivation** | PBKDF2 with 100,000 iterations |
-| **Initialization Vector** | Unique 12-byte IV per encryption |
-| **Salt** | Unique 16-byte salt per user |
+| Component                 | Specification                     |
+| ------------------------- | --------------------------------- |
+| **Algorithm**             | AES-256-GCM (Galois/Counter Mode) |
+| **Key Derivation**        | PBKDF2 with 100,000 iterations    |
+| **Initialization Vector** | Unique 12-byte IV per encryption  |
+| **Salt**                  | Unique 16-byte salt per user      |
 
 ### 🔑 Password Hashing
 
-| Component | Specification |
-|-----------|--------------|
-| **Algorithm** | Argon2 (PHC winner 2015) |
-| **Time Cost** | 3 iterations |
-| **Memory Cost** | 64 MB |
-| **Parallelism** | 4 threads |
-| **Salt** | Unique 32-byte salt per user |
+| Component       | Specification                |
+| --------------- | ---------------------------- |
+| **Algorithm**   | Argon2 (PHC winner 2015)     |
+| **Time Cost**   | 3 iterations                 |
+| **Memory Cost** | 64 MB                        |
+| **Parallelism** | 4 threads                    |
+| **Salt**        | Unique 32-byte salt per user |
 
 ### 🔐 API Security
 
@@ -340,12 +343,14 @@ Your master password is used **only** in your browser to derive an encryption ke
 ### 🐘 PostgreSQL
 
 **Advantages:**
+
 - ✅ ACID compliance
 - ✅ Strong consistency
 - ✅ Rich query capabilities
 - ✅ Mature ecosystem
 
 **Connection String:**
+
 ```
 postgresql://user:password@localhost:5432/password_manager
 ```
@@ -356,17 +361,20 @@ postgresql://user:password@localhost:5432/password_manager
 ### 🍃 MongoDB
 
 **Advantages:**
+
 - ✅ Flexible schema
 - ✅ Horizontal scaling
 - ✅ JSON-native
 - ✅ Free cloud tier (Atlas)
 
 **Local:**
+
 ```
 mongodb://localhost:27017/password_manager
 ```
 
 **Atlas (Cloud):**
+
 ```
 mongodb+srv://user:pass@cluster.mongodb.net/password_manager
 ```
@@ -399,11 +407,13 @@ pytest tests/ --cov=. --cov-report=html
 ### API Testing Examples
 
 **Health Check:**
+
 ```bash
 curl http://localhost:5000/health
 ```
 
 **Register:**
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -415,6 +425,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ```
 
 **Login:**
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -439,6 +450,7 @@ heroku config:set DATABASE_TYPE=mongodb
 heroku config:set MONGODB_URI=mongodb+srv://...
 git push heroku main
 ```
+
 </details>
 
 <details>
@@ -451,6 +463,7 @@ docker build -t securevault-backend ./backend
 # Run container
 docker run -p 5000:5000 --env-file .env securevault-backend
 ```
+
 </details>
 
 <details>
@@ -478,13 +491,13 @@ docker run -p 5000:5000 --env-file .env securevault-backend
 
 Explore detailed documentation:
 
-| Document | Description |
-|----------|-------------|
-| [📘 Backend README](backend/README.md) | Backend setup and API details |
-| [🎨 Frontend README](frontend/README.md) | Extension installation guide |
-| [📡 API Documentation](docs/API.md) | Complete API reference |
-| [🔒 Security Details](docs/SECURITY.md) | Security architecture |
-| [🏗️ Architecture Guide](docs/ARCHITECTURE.md) | System design overview |
+| Document                                      | Description                   |
+| --------------------------------------------- | ----------------------------- |
+| [📘 Backend README](backend/README.md)        | Backend setup and API details |
+| [🎨 Frontend README](frontend/README.md)      | Extension installation guide  |
+| [📡 API Documentation](docs/API.md)           | Complete API reference        |
+| [🔒 Security Details](docs/SECURITY.md)       | Security architecture         |
+| [🏗️ Architecture Guide](docs/ARCHITECTURE.md) | System design overview        |
 
 ---
 
@@ -548,14 +561,14 @@ Built with amazing open-source technologies:
 
 <div align="center">
 
-| Technology | Purpose |
-|------------|---------|
-| [Flask](https://flask.palletsprojects.com/) | Web framework |
-| [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) | Cloud database |
-| [PostgreSQL](https://www.postgresql.org/) | Relational database |
-| [Argon2](https://github.com/P-H-C/phc-winner-argon2) | Password hashing |
+| Technology                                                                        | Purpose                |
+| --------------------------------------------------------------------------------- | ---------------------- |
+| [Flask](https://flask.palletsprojects.com/)                                       | Web framework          |
+| [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)                              | Cloud database         |
+| [PostgreSQL](https://www.postgresql.org/)                                         | Relational database    |
+| [Argon2](https://github.com/P-H-C/phc-winner-argon2)                              | Password hashing       |
 | [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) | Client-side encryption |
-| [Chrome Extensions](https://developer.chrome.com/docs/extensions/) | Frontend platform |
+| [Chrome Extensions](https://developer.chrome.com/docs/extensions/)                | Frontend platform      |
 
 </div>
 
@@ -572,13 +585,11 @@ Need help or want to connect?
 
 ---
 
-
-
 <div align="center">
 
 ### Built with ❤️ by the SecureVault Team
 
-**SecureVault** - *Because your passwords should stay yours.*
+**SecureVault** - _Because your passwords should stay yours._
 
 [⬆ Back to Top](#-securevault)
 
