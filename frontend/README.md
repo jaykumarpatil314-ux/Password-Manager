@@ -1,217 +1,181 @@
-SecureVault Chrome Extension (Frontend)
+# 🔐 SecureVault Chrome Extension
 
-A minimal, authentic, zero-knowledge password manager Chrome extension that pairs with a Python Flask backend. All sensitive data is encrypted client-side using AES‑256‑GCM; the backend never sees plaintext.
-Features
+> A minimal, authentic, zero-knowledge password manager Chrome extension that pairs with a Python Flask backend. All sensitive data is encrypted client-side using AES‑256‑GCM; the backend never sees plaintext.
 
-    Zero‑knowledge architecture (client‑side AES‑256‑GCM)
+[![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow.svg)](https://developer.chrome.com/docs/extensions/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](../LICENSE.md)
+[![GitHub](https://img.shields.io/badge/github-repo-green.svg)](https://github.com/jaykumarpatil314-ux/Password-Manager.git)
 
-    Clean, minimal UI with authentic feel
+---
 
-    Register/Login with JWT session handling
+## ✨ Features
 
-    Add, edit, delete password entries
+- 🔒 **Zero‑knowledge architecture** - Client‑side AES‑256‑GCM encryption
+- 🎨 **Clean, minimal UI** with authentic feel
+- 🔑 **Register/Login** with JWT session handling
+- 📝 **Add, edit, delete** password entries
+- 🔐 **Local, secure decryption** using master password
+- 🎲 **Password generator** and strength indicator
+- 🔍 **Search** across saved entries
+- 🔔 **Toast notifications** and loading states
+- 🛡️ **CSP‑compliant** (no inline scripts/handlers)
 
-    Local, secure decryption using master password
+---
 
-    Password generator and strength indicator
+## 📁 Folder Structure
 
-    Search across saved entries
-
-    Toast notifications and loading states
-
-    CSP‑compliant (no inline scripts/handlers)
-
-Folder Structure
-
-text
-securevault/
-├── manifest.json
-├── popup.html
-├── popup.css
-├── popup.js
-├── crypto.js
-├── api.js
-├── background.js
-└── icons/
+```
+frontend/
+├── manifest.json     # Extension manifest
+├── popup.html        # Main extension UI
+├── popup.css         # Styles
+├── popup.js          # Main UI logic
+├── crypto.js         # Encryption/decryption utilities
+├── api.js            # Backend API communication
+├── background.js     # Service worker
+└── icons/            # Extension icons
     ├── icon16.png
     ├── icon48.png
     └── icon128.png
+```
 
-Prerequisites
+---
 
-    Google Chrome (latest)
+## 🚀 Installation
 
-    Flask backend running locally at http://localhost:5000
+### Prerequisites
 
-    Backend must implement:
+- Google Chrome (latest)
+- Flask backend running locally at http://localhost:5000
 
-        POST /api/auth/register
+### Setup
 
-        POST /api/auth/login
+1. **Clone the repository**
+
+```bash
+git clone https://github.com/jaykumarpatil314-ux/Password-Manager.git
+cd Password-Manager
+```
+
+2. **Load the extension in Chrome**
+
+- Open Chrome and navigate to `chrome://extensions/`
+- Enable "Developer mode" (toggle in the top-right corner)
+- Click "Load unpacked" and select the `frontend` directory
+- The SecureVault extension icon should appear in your toolbar
+
+3. **Configure backend connection**
+
+- Make sure the backend server is running (see [Backend README](../backend/README.md))
+- The extension is pre-configured to connect to `http://localhost:5000`
+
+---
+
+## 🔧 Usage
 
-        GET /api/passwords
+1. **First-time setup**
+   - Click the SecureVault icon in your Chrome toolbar
+   - Register a new account with a strong master password
+   - Your master password is used for encryption and never sent to the server
 
-        POST /api/passwords
+2. **Adding passwords**
+   - Click the "+" button to add a new password
+   - Enter website details and credentials
+   - All data is encrypted before being sent to the server
 
-        PUT /api/passwords/:id
+3. **Retrieving passwords**
+   - Search for a website in the search bar
+   - Click on an entry to view details
+   - Use the copy button to copy the password to clipboard
 
-        DELETE /api/passwords/:id
+4. **Generating strong passwords**
+   - When adding or editing a password, click "Generate"
+   - Adjust length and character types as needed
+   - The password strength indicator will show how secure it is
 
-        POST /api/passwords/search
+---
 
-    CORS enabled for chrome extension and localhost
+## 🔒 Security
 
-Installation
+- **Zero-Knowledge Design**: Your master password never leaves your device
+- **Client-Side Encryption**: All sensitive data is encrypted with AES-256-GCM before transmission
+- **Key Derivation**: PBKDF2 with 100,000 iterations to derive encryption key from master password
+- **No Plaintext Storage**: Only encrypted data is sent to and stored on the server
+- **Session Security**: JWT tokens with short expiration and secure storage
 
-    Create the folder structure shown above.
+---
 
-    Copy all frontend files into the folder.
+## 🧪 Development
 
-    Add PNG icons (any lock icon works) sized 16x16, 48x48, 128x128 in icons/.
+### Extension Manifest
 
-    Open Chrome → go to chrome://extensions/.
+The extension uses Manifest V3, which is the latest extension platform from Chrome:
 
-    Enable Developer mode (top right).
+```json
+{
+  "manifest_version": 3,
+  "name": "SecureVault",
+  "version": "1.0.0",
+  "description": "Zero-knowledge password manager",
+  "permissions": ["storage", "clipboardWrite"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
+```
 
-    Click “Load unpacked” and select the securevault folder.
-
-    Start the Flask backend (default http://localhost:5000).
-
-    Click the extension icon to open the popup.
-
-Configuration
-
-    The frontend points to http://localhost:5000 by default.
-
-    To change, edit the base URL in api.js:
-
-        new APIClient('http://localhost:5000')
-
-How It Works
-
-    Master password never leaves the browser.
-
-    crypto.js derives an AES‑256 key via PBKDF2 and encrypts credentials using AES‑GCM with a random IV.
-
-    Only encrypted blobs are sent to the backend and stored in the database.
-
-    Decryption happens in the popup using the stored master password (in chrome.storage.session).
-
-Files Overview
-
-    manifest.json
-
-        MV3 manifest with storage and host permissions, background service worker, and default popup.
-
-    popup.html
-
-        Minimal UI: login/register, search, list, modal for add/edit, loading overlay, toast.
-
-    popup.css
-
-        Clean modern theme; neutral palette; responsive; subtle shadows and motion.
-
-    popup.js
-
-        UI logic and state:
-
-            JWT handling via chrome.storage.local
-
-            Master password stored in chrome.storage.session (cleared when browser closes)
-
-            Add/Edit/Delete/Copy/Search flows
-
-            CSP‑safe event listeners (no inline handlers)
-
-    api.js
-
-        Thin REST client with token injection, JSON handling, and CORS mode.
-
-    crypto.js
-
-        Web Crypto API wrapper:
-
-            PBKDF2 key derivation
-
-            AES‑GCM encrypt/decrypt
-
-            Strong password generator and strength meter
-
-    background.js
-
-        MV3 service worker (lightweight; ready for future autofill features).
-
-Usage
-
-    Register a new account or log in.
-
-    Add a password:
-
-        Enter site URL/name, username/email, and password.
-
-        Optionally click Generate to create a strong password.
-
-        Save to store encrypted blobs in the backend.
-
-    Search:
-
-        Use the search bar to filter by name, URL, or username.
-
-    Copy:
-
-        Click Copy to decrypt and put the password on the clipboard.
-
-    Edit/Delete:
-
-        Click Edit to modify entry fields.
-
-        Click Delete to permanently remove the entry.
-
-    Logout:
-
-        Click the logout button in the header to clear tokens and session.
-
-Security Notes
-
-    Master password is stored in chrome.storage.session to allow decryption during popup lifecycle and is cleared when the browser session ends.
-
-    All encryption/decryption uses the Web Crypto API; no external libraries.
-
-    The extension adheres to MV3 CSP: avoids inline handlers and code execution.
-
-    Server receives only encrypted blobs for username, password, and notes.
-
-Troubleshooting
-
-    CORS errors:
-
-        Ensure Flask has CORS enabled and allows chrome-extension://<your_id> and http://localhost:5000.
-
-    Decryption failed:
-
-        Master password missing or different from the one used at encryption time.
-
-        The popup will reprompt if the session value is missing.
-
-    No logs or UI updates:
-
-        Right‑click popup → Inspect → check Console for errors.
-
-    401 Unauthorized:
-
-        Token expired; log in again.
-
-Extending
-
-    Autofill: Implement content scripts and page field detection, and message the background/popup for decryption.
-
-    Sync: Use WebSocket channels to live-sync entry lists when edited on other devices.
-
-    Theming: Add dark mode via a CSS toggle and prefers‑color‑scheme.
-
-Privacy
-
-SecureVault implements a zero‑knowledge model: plaintext secrets never leave the device. The backend is never able to decrypt stored credentials.
-
-License
-MIT
+### API Communication
+
+The extension communicates with the backend using the Fetch API:
+
+```javascript
+// Example from api.js
+async function login(username, masterPassword) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, master_password: masterPassword }),
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+}
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please check out our [Contributing Guide](../CONTRIBUTING.md) for more details.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE.md) file for details.
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ for security and privacy</sub>
+</div>
